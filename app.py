@@ -69,7 +69,14 @@ if analyze_btn and ticker_input:
             st.warning("No recent news found for this ticker from trusted sources.")
         else:
             scored_df = analyze_sentiment(news_df, model)
-            avg_score = scored_df['Score Value'].mean()
+            # Filter out neutral articles to reveal the true underlying sentiment
+            directional_scores = scored_df[scored_df['Sentiment'] != 'Neutral']['Score Value']
+            
+            # If every single article was neutral, the score is 0. Otherwise, average the directional ones.
+            if directional_scores.empty:
+                avg_score = 0
+            else:
+                avg_score = directional_scores.mean()
             
             st.subheader("Current Market Sentiment")
             
