@@ -69,25 +69,36 @@ if analyze_btn and ticker_input:
             st.warning("No recent news found for this ticker from trusted sources.")
         else:
             scored_df = analyze_sentiment(news_df, model)
-            # Filter out neutral articles to reveal the true underlying sentiment
+            
+            # Filter out neutral headlines to reveal true directional sentiment
             directional_scores = scored_df[scored_df['Sentiment'] != 'Neutral']['Score Value']
             
-            # If every single article was neutral, the score is 0. Otherwise, average the directional ones.
             if directional_scores.empty:
-                avg_score = 0
+                raw_score = 0.0
             else:
-                avg_score = directional_scores.mean()
+                raw_score = directional_scores.mean()
+            
+            # Convert raw score (-1.0 to +1.0) into a 1 to 10 scale
+            scaled_score = round(((raw_score + 1.0) / 2.0) * 9.0 + 1.0, 1)
             
             st.subheader("Current Market Sentiment")
             
-            if avg_score > 0.2:
-                sentiment_text, color = "Bullish 🟢", "green"
-            elif avg_score < -0.2:
-                sentiment_text, color = "Bearish 🔴", "red"
-            else:
+            # 1 to 10 scale classifications
+            if scaled_score >= 8.5:
+                sentiment_text, color = "Strong Bullish 🟢", "green"
+            elif scaled_score >= 6.5:
+                sentiment_text, color = "Mildly Bullish 📈", "lightgreen"
+            elif scaled_score >= 4.5:
                 sentiment_text, color = "Neutral ⚪", "gray"
+            elif scaled_score >= 2.5:
+                sentiment_text, color = "Mildly Bearish 📉", "orange"
+            else:
+                sentiment_text, color = "Strong Bearish 🔴", "red"
                 
-            st.markdown(f"<h2 style='color: {color};'>{sentiment_text} (Score: {avg_score:.2f})</h2>", unsafe_allow_html=True)
+            st.markdown(
+                f"<h2 style='color: {color};'>{sentiment_text} — {scaled_score}/10</h2>", 
+                unsafe_allow_html=True
+            )
             
             st.subheader(f"Recent Headlines ({len(scored_df)} articles analyzed)")
             display_df = scored_df[['Published', 'Title', 'Sentiment', 'Score Value']]
